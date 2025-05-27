@@ -1,55 +1,55 @@
 package com.rmg.springbootwebflux.controller;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rmg.springbootwebflux.models.documents.HealthDataDto;
+import com.rmg.springbootwebflux.service.HealthParserService;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/parser")
 public class HealthParserController {
 
-    private final WebClient webClient;
+    private final HealthParserService parserService;
+    private final ObjectMapper objectMapper;
 
-    @Value("${huggingface.api.token}")
-    private String huggingfaceToken;
-
-    public HealthParserController(WebClient.Builder builder) {
-        this.webClient = builder
-                .baseUrl("https://api-inference.huggingface.co/models/google/flan-t5-xl")
-                .build();
+    public HealthParserController(HealthParserService parserService, ObjectMapper objectMapper) {
+        this.parserService = parserService;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping(consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public Mono<String> parseInput(@RequestBody String inputText) {
-        String prompt = """
-            Analiza este texto escrito en español y extrae la información relevante de salud. Devuelve un JSON con las siguientes categorías si están disponibles: 
-            - sueno.total
-            - sueno.profundo
-            - medicamentos (nombre, dosis)
-            - presion (sistolica, diastolica)
-            - ejercicio (distancia, frecuenciaCardiacaPromedio)
-            - meditacion (duracion)
-            - observaciones generales
+    public Mono<ResponseEntity<?>> parseText(@RequestBody String inputText) {
+        return parserService.callHuggingFaceModel(inputText)
+                .flatMap(arrayNode -> {
+                    try {
+                        if (arrayNode.isEmpty()) {
+                            return Mono.just(ResponseEntity.badRequest().body("Respuesta vacía del modelo."));
+                        }
 
-            Texto del usuario:
-            %s
+                        String generatedText = arrayNode.get(0).get("generated_text").asText();
 
-            Respuesta:
-            """.formatted(inputText);
+                        // Buscar el JSON dentro del texto generado
+                        int start = generatedText.indexOf('{');
+                        int end = generatedText.lastIndexOf('}') + 1;
 
-        String jsonRequest = String.format("{\"inputs\": \"%s\"}", prompt.replace("\"", "\\\""));
+                        if (start >= 0 && end > start) {
+                            String jsonString = generatedText.substring(start, end);
+                            HealthDataDto dto = objectMapper.readValue(jsonString, HealthDataDto.class);
+                            return Mono.just(ResponseEntity.ok(dto));
+                        } else {
+                            return Mono.just(ResponseEntity.badRequest().body("No se pudo encontrar un JSON válido en la respuesta."));
+                        }
 
-        return webClient.post()
-                .header("Authorization", "Bearer " + huggingfaceToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(jsonRequest)
-                .retrieve()
-                .bodyToMono(String.class)
+                    } catch (Exception e) {
+                        return Mono.just(ResponseEntity.internalServerError().body("Error al parsear JSON: " + e.getMessage()));
+                    }
+                })
                 .onErrorResume(e -> {
                     e.printStackTrace();
-                    return Mono.just("{\"error\":\"No se pudo procesar la respuesta del modelo.\"}");
+                    return Mono.just(ResponseEntity.internalServerError().body("Error en Hugging Face: " + e.getMessage()));
                 });
     }
 }
