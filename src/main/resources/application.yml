@@ -40,4 +40,4 @@ management:
 
 huggingface:
   api:
-    token: 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
+    token: ---

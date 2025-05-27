@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
 @Service
 public class HealthParserService {
 
-    @Value("${huggingface.api.token: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}")
+    @Value("${huggingface.api.token}")
     private String huggingFaceToken;
 
     private final ObjectMapper objectMapper;
