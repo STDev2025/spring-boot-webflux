@@ -37,3 +37,7 @@ management:
       show-details: always
   web:
     base-path: /actuator
+
+huggingface:
+  api:
+    token: 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
