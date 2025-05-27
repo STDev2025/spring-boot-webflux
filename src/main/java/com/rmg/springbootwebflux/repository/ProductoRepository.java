@@ -1,4 +1,4 @@
-package com.rmg.springbootwebflux.models.dao;
+package com.rmg.springbootwebflux.repository;
 
 import com.rmg.springbootwebflux.models.documents.Producto;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;

@@ -1,1 +1,39 @@
-spring.application.name=spring-boot-webflux
+spring:
+  application:
+    name: spring-boot-webflux
+  data:
+    mongodb:
+      database: healthDB
+      host: localhost
+      port: 27017
+  webflux:
+    base-path: /api
+    cors:
+      allowed-origin-patterns: "*"
+      allowed-methods: GET,POST,PUT,DELETE,PATCH
+      allowed-headers: "*"
+      allow-credentials: true
+
+server:
+  port: 8081  # Main application port
+  error:
+    include-message: always
+    include-binding-errors: always
+
+logging:
+  level:
+    root: INFO
+    com.rmg: DEBUG
+
+management:
+  server:
+    port: 8082  # Separate port for Actuator
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+  web:
+    base-path: /actuator

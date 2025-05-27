@@ -1,18 +1,15 @@
 package com.rmg.springbootwebflux.models.documents;
 
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
-@Document(collection = "producto")
-public record Producto(
+@Document(collection = "productos")
+public record ProductoRecord (
         @Id String id,
         String nombre,
-        BigDecimal precio,
-        @CreatedDate Instant createDate,
-        @LastModifiedDate Instant updateDate
+        double precio,
+        LocalDateTime createDate,
+        LocalDateTime updateDate
 ) {}
